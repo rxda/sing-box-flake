@@ -26,9 +26,10 @@
 
             src = sing-box-src;
 
+            # deleteVendor = true;
             # 重点：对于自动化仓库，vendorHash 会随代码变动
             # 我们在 Github Action 里会自动更新这个哈希
-            vendorHash = "sha256-dBNN3iWuQUvGqZhtR/qtnyUJWWBF0C0dVseeTPjxXE0=";
+            vendorHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
 
             tags = [
               "with_quic"
