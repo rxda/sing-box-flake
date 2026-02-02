@@ -28,7 +28,7 @@
 
             # 重点：对于自动化仓库，vendorHash 会随代码变动
             # 我们在 Github Action 里会自动更新这个哈希
-            vendorHash = "sha256-p5E3tJiqhgTeE35vVt03Yo9oF3DZPO9hXuKKR6r0V+g=";
+            vendorHash = "sha256-dBNN3iWuQUvGqZhtR/qtnyUJWWBF0C0dVseeTPjxXE0=";
 
             tags = [
               "with_quic"
