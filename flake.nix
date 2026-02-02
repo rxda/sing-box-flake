@@ -15,7 +15,7 @@
     extra-trusted-public-keys = [ "rxda-cache.cachix.org-1:LDGrYaB+dF7wh+uWMLjh5VsckzFnnCyGkMH1sKHN++g=" ];
   };
 
-  outputs = { self, nixpkgs, sing-box-src, ... }:
+  outputs = { self, nixpkgs, sing-box-src, inputs, ... }:
     let
       systems = [ "x86_64-linux" "aarch64-linux" ];
       forAllSystems = nixpkgs.lib.genAttrs systems;
@@ -28,7 +28,7 @@
           sing-box-package = pkgs.buildGoModule rec {
             pname = "sing-box";
             # 动态获取版本号，或者写死为 latest-git
-            version = "latest-git";
+            version = "unstable-${inputs.sing-box-src.lastModifiedDate}";
 
             src = sing-box-src;
 
