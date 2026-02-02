@@ -1,0 +1,43 @@
+name: Auto Update & Build
+on:
+  schedule:
+    - cron: '0 2 * * *' # 每天凌晨2点
+  workflow_dispatch:
+
+jobs:
+  update-flake:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v25
+      - uses: cachix/cachix-action@v14
+        with:
+          name: rxda-cache # 你的 Cachix 名字
+          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+
+      - name: Update Input
+        run: nix flake update sing-box-src
+
+      - name: Fix vendorHash
+        run: |
+          # 这是一个神奇的技巧：
+          # 尝试构建，如果失败（哈希不对），从错误信息中提取新哈希并替换
+          # 注意：需要安装 nix-init 或者简单的 sed 逻辑
+          set +e
+          # 第一次运行，获取实际需要的哈希
+          actual_hash=$(nix build .#default 2>&1 | grep "got:" | cut -d':' -f2 | xargs)
+          if [ -n "$actual_hash" ]; then
+            sed -i "s|vendorHash = \"sha256-.*\";|vendorHash = \"$actual_hash\";|g" flake.nix
+          fi
+          set -e
+
+      - name: Final Build & Push to Cachix
+        run: nix build .#default
+
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add flake.nix flake.lock
+          git commit -m "chore: auto update sing-box and vendorHash" || exit 0
+          git push
