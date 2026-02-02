@@ -9,6 +9,12 @@
     };
   };
 
+  nixConfig = {
+    # 使用 extra- 前缀，这样它会追加到现有缓存列表，而不是覆盖它们
+    extra-substituters = [ "https://rxda-cache.cachix.org" ];
+    extra-trusted-public-keys = [ "rxda-cache.cachix.org-1:LDGrYaB+dF7wh+uWMLjh5VsckzFnnCyGkMH1sKHN++g=" ];
+  };
+
   outputs = { self, nixpkgs, sing-box-src, ... }:
     let
       systems = [ "x86_64-linux" "aarch64-linux" ];
