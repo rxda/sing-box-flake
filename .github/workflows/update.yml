@@ -58,7 +58,7 @@ jobs:
         run: |
           # 实际构建，结果会自动上传到 Cachix
           # --print-build-logs 方便你在 Action 界面看编译进度
-          nix build .#default --print-build-logs
+          nix build .#default --accept-flake-config --print-build-logs
 
       - name: Commit and Push changes
         run: |

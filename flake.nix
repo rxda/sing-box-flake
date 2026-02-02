@@ -15,7 +15,7 @@
     extra-trusted-public-keys = [ "rxda-cache.cachix.org-1:LDGrYaB+dF7wh+uWMLjh5VsckzFnnCyGkMH1sKHN++g=" ];
   };
 
-  outputs = { self, nixpkgs, sing-box-src, inputs, ... }:
+  outputs = inputs@{ self, nixpkgs, sing-box-src, ... }:
     let
       systems = [ "x86_64-linux" "aarch64-linux" ];
       forAllSystems = nixpkgs.lib.genAttrs systems;
