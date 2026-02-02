@@ -1,43 +1,79 @@
-name: Auto Update & Build
+name: Auto Update Sing-box
 on:
   schedule:
-    - cron: '0 2 * * *' # 每天凌晨2点
-  workflow_dispatch:
+    - cron: '0 2 * * *' # 每天凌晨 2 点执行
+  workflow_dispatch:    # 允许手动触发
 
 jobs:
-  update-flake:
+  update-sing-box:
     runs-on: ubuntu-latest
+    # ！！！权限声明：允许 Action 修改并推送代码到仓库 ！！！
+    permissions:
+      contents: write
+      
     steps:
-      - uses: actions/checkout@v4
-      - uses: cachix/install-nix-action@v25
-      - uses: cachix/cachix-action@v14
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v30
         with:
-          name: rxda-cache # 你的 Cachix 名字
+          nix_path: nixpkgs=channel:nixos-unstable
+          # 开启实验性功能并消除你之前的 auto-allocate-uids 警告
+          extra_nix_config: |
+            experimental-features = nix-command flakes auto-allocate-uids configurable-impure-env
+            auto-allocate-uids = true
+
+      - name: Setup Cachix
+        uses: cachix/cachix-action@v15
+        with:
+          name: rxda-cache # 替换为你的 Cachix 缓存名称
           authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
 
-      - name: Update Input
+      - name: Update Flake Inputs
         run: nix flake update sing-box-src
 
-      - name: Fix vendorHash
+      - name: Auto Fix vendorHash
         run: |
-          # 这是一个神奇的技巧：
-          # 尝试构建，如果失败（哈希不对），从错误信息中提取新哈希并替换
-          # 注意：需要安装 nix-init 或者简单的 sed 逻辑
+          # 尝试构建，捕获哈希不匹配的错误
           set +e
-          # 第一次运行，获取实际需要的哈希
-          actual_hash=$(nix build .#default 2>&1 | grep "got:" | cut -d':' -f2 | xargs)
-          if [ -n "$actual_hash" ]; then
-            sed -i "s|vendorHash = \"sha256-.*\";|vendorHash = \"$actual_hash\";|g" flake.nix
-          fi
+          echo "Attempting initial build to check/fix vendorHash..."
+          
+          # 第一次运行，强制获取错误信息
+          build_output=$(nix build .#default 2>&1)
           set -e
 
-      - name: Final Build & Push to Cachix
-        run: nix build .#default
+          # 从错误输出中提取 Nix 期望的 'got:' 后的正确哈希值
+          new_hash=$(echo "$build_output" | grep "got:" | cut -d':' -f2 | xargs)
 
-      - name: Commit changes
+          if [ -n "$new_hash" ] && [ "$new_hash" != "null" ]; then
+            echo "New vendorHash detected: $new_hash"
+            # 使用 sed 搜索并替换 flake.nix 中的旧哈希
+            sed -i "s|vendorHash = \"sha256-.*\";|vendorHash = \"$new_hash\";|g" flake.nix
+          else
+            echo "vendorHash is still valid or was already correct."
+          fi
+
+      - name: Final Build & Push to Cachix
         run: |
+          # 实际构建，结果会自动上传到 Cachix
+          # --print-build-logs 方便你在 Action 界面看编译进度
+          nix build .#default --print-build-logs
+
+      - name: Commit and Push changes
+        run: |
+          # 配置 Git 机器人身份
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # 暂存所有更改
           git add flake.nix flake.lock
-          git commit -m "chore: auto update sing-box and vendorHash" || exit 0
-          git push
+          
+          # 检查是否有实际改动，避免 push 报错
+          if git diff --cached --exit-code; then
+            echo "No changes in flake.nix or flake.lock. Skipping push."
+          else
+            echo "Changes detected, pushing to repository..."
+            git commit -m "chore: auto update sing-box and vendorHash"
+            git push
+          fi
