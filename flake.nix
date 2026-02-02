@@ -4,7 +4,7 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     sing-box-src = {
-      url = "github:SagerNet/sing-box/main"; # 追踪 main 分支获取最新代码
+      url = "github:SagerNet/sing-box/dev-next"; # 追踪 main 分支获取最新代码
       flake = false;
     };
   };
