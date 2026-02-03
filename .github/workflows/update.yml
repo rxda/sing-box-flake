@@ -13,13 +13,32 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Get Latest Release Tag
+      - name: Get Latest Beta/RC Release Tag
         id: get_tag
         run: |
-          # 获取包含预发布在内的最新 Tag
-          TAG=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            https://api.github.com/repos/SagerNet/sing-box/releases | jq -r '.[0].tag_name')
+          # 1. 获取所有 Release 列表
+          RESPONSE=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            https://api.github.com/repos/SagerNet/sing-box/releases)
+          
+          # 2. 关键过滤逻辑：
+          # .[]                     -> 遍历每一个 release
+          # select(...)             -> 只保留 tag_name 包含 beta 或 rc 的项
+          # | .tag_name             -> 提取标签名
+          # 第一个 jq 是为了生成一个列表，第二个 jq 取第一个元素（时间上最新）
+          TAG=$(echo "$RESPONSE" | jq -r '[.[] | select(.tag_name | test("beta|rc"; "i"))] | .[0].tag_name')
+
+          # 3. 检查是否成功获取
+          if [ "$TAG" == "null" ] || [ -z "$TAG" ]; then
+            echo "未发现任何符合条件的 Beta 或 RC 版本"
+            exit 1
+          fi
+
+          # 去掉前面的 v 得到纯版本号
+          VERSION=${TAG#v}
+          
           echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Detected Target Tag: $TAG"
 
       - name: Check if Update Needed
         id: check
