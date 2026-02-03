@@ -35,7 +35,7 @@
             # deleteVendor = true;
             # 重点：对于自动化仓库，vendorHash 会随代码变动
             # 我们在 Github Action 里会自动更新这个哈希
-            vendorHash = "sha256-fCwERlWIgeu5n9Eav/DlnneVKkvk+T6J09hFRC/7Sqg=";
+            vendorHash = "sha256-Qj2+1Lht6lEEC1ve/hTZiE/NhJwf0KKiFqr1FfDxjsQ=";
 
             tags = [
               "with_quic"
