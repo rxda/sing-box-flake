@@ -1,22 +1,24 @@
 {
-  description = "Sing-box latest/beta auto-update flake";
+  description = "Sing-box Latest Release Flake (Auto-updated by GitHub Actions)";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     sing-box-src = {
-      url = "github:SagerNet/sing-box/dev-next"; # 追踪 main 分支获取最新代码
+      # ！！！格式警告：修改此 URL 会导致 GitHub Action 匹配失败 ！！！
+      url = "github:SagerNet/sing-box/v1.11.0-beta.10";
       flake = false;
     };
   };
 
+  # 允许使用者自动获取你的二进制缓存
   nixConfig = {
-    # 使用 extra- 前缀，这样它会追加到现有缓存列表，而不是覆盖它们
     extra-substituters = [ "https://rxda-cache.cachix.org" ];
     extra-trusted-public-keys = [ "rxda-cache.cachix.org-1:LDGrYaB+dF7wh+uWMLjh5VsckzFnnCyGkMH1sKHN++g=" ];
   };
 
-  outputs = inputs@{ self, nixpkgs, sing-box-src, ... }:
+  outputs = inputs@{ self, nixpkgs, ... }:
     let
+      # 支持 x86 和 ARM 架构
       systems = [ "x86_64-linux" "aarch64-linux" ];
       forAllSystems = nixpkgs.lib.genAttrs systems;
     in
@@ -24,19 +26,19 @@
       packages = forAllSystems (system:
         let
           pkgs = nixpkgs.legacyPackages.${system};
-          # 参考官方定义的构建函数
-          sing-box-package = pkgs.buildGoModule rec {
+        in
+        {
+          default = pkgs.buildGoModule rec {
             pname = "sing-box";
-            # 动态获取版本号，或者写死为 latest-git
-            version = "unstable-${inputs.sing-box-src.lastModifiedDate}";
+            # ！！！格式警告：修改此变量名会导致 GitHub Action 匹配失败 ！！！
+            version = "1.11.0-beta.10";
 
-            src = sing-box-src;
+            src = inputs.sing-box-src;
 
-            # deleteVendor = true;
-            # 重点：对于自动化仓库，vendorHash 会随代码变动
-            # 我们在 Github Action 里会自动更新这个哈希
-            vendorHash = "sha256-Qj2+1Lht6lEEC1ve/hTZiE/NhJwf0KKiFqr1FfDxjsQ=";
+            # 哈希会自动被 GitHub Action 里的脚本更新
+            vendorHash = "sha256-nif9mfr02l6m9flb9p22j1a60c8br774=";
 
+            # 包含所有增强特性
             tags = [
               "with_quic"
               "with_dhcp"
@@ -45,7 +47,7 @@
               "with_acme"
               "with_clash_api"
               "with_gvisor"
-              "with_tailscale" # 包含你想要的 1.13+ tailscale 特性
+              "with_tailscale"
             ];
 
             subPackages = [ "cmd/sing-box" ];
@@ -53,10 +55,10 @@
             nativeBuildInputs = [ pkgs.installShellFiles ];
 
             ldflags = [
-              "-X=github.com/sagernet/sing-box/constant.Version=${version}"
+              "-X github.com/sagernet/sing-box/constant.Version=${version}"
             ];
 
-            # 保留官方的补全和系统服务处理
+            # 保持与官方包一致的收尾工作（补全脚本和服务文件）
             postInstall = ''
               installShellCompletion release/completions/sing-box.{bash,fish,zsh}
 
@@ -69,14 +71,11 @@
               install -Dm444 release/config/sing-box-split-dns.xml $out/share/dbus-1/system.d/sing-box-split-dns.conf
             '';
           };
-        in
-        {
-          default = sing-box-package;
         });
 
-      # 提供 Overlay 供主配置使用
+      # 提供 Overlay 选项，虽然你现在直接引用 packages，但留着是个好习惯
       overlays.default = final: prev: {
-        sing-box-beta = self.packages.${final.system}.default;
+        sing-box-unstable = self.packages.${final.system}.default;
       };
     };
 }

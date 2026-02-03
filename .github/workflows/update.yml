@@ -1,79 +1,86 @@
 name: Auto Update Sing-box
 on:
   schedule:
-    - cron: '0 2 * * *' # 每天凌晨 2 点执行
-  workflow_dispatch:    # 允许手动触发
+    - cron: '0 2 * * *'
+  workflow_dispatch:
 
 jobs:
-  update-sing-box:
+  update:
     runs-on: ubuntu-latest
-    # ！！！权限声明：允许 Action 修改并推送代码到仓库 ！！！
     permissions:
       contents: write
-      
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Get Latest Release Tag
+        id: get_tag
+        run: |
+          # 获取包含预发布在内的最新 Tag
+          TAG=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            https://api.github.com/repos/SagerNet/sing-box/releases | jq -r '.[0].tag_name')
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+      - name: Check if Update Needed
+        id: check
+        run: |
+          # 检查当前的 flake.nix 里是否已经记录了这个 Tag
+          # 如果 grep 找到了这个 Tag，说明源码没变
+          if grep -q "${{ steps.get_tag.outputs.tag }}" flake.nix; then
+            echo "Upstream tag hasn't changed. Checking if nixpkgs needs update..."
+            echo "update_needed=false" >> $GITHUB_OUTPUT
+          else
+            echo "New tag detected: ${{ steps.get_tag.outputs.tag }}"
+            echo "update_needed=true" >> $GITHUB_OUTPUT
+          fi
+
       - name: Install Nix
+        # 只有在需要更新，或者是手动触发时才执行安装 Nix
+        if: steps.check.outputs.update_needed == 'true' || github.event_name == 'workflow_dispatch'
         uses: cachix/install-nix-action@v30
         with:
-          nix_path: nixpkgs=channel:nixos-unstable
-          # 开启实验性功能并消除你之前的 auto-allocate-uids 警告
           extra_nix_config: |
             experimental-features = nix-command flakes auto-allocate-uids configurable-impure-env
             auto-allocate-uids = true
 
       - name: Setup Cachix
+        if: steps.check.outputs.update_needed == 'true' || github.event_name == 'workflow_dispatch'
         uses: cachix/cachix-action@v15
         with:
-          name: rxda-cache # 替换为你的 Cachix 缓存名称
+          name: rxda-cache
           authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
 
-      - name: Update Flake Inputs
-        run: nix flake update sing-box-src
-
-      - name: Auto Fix vendorHash
+      - name: Execute Update and Build
+        if: steps.check.outputs.update_needed == 'true' || github.event_name == 'workflow_dispatch'
         run: |
-          # 尝试构建，捕获哈希不匹配的错误
-          set +e
-          echo "Attempting initial build to check/fix vendorHash..."
+          # 1. 修改 flake.nix 里的版本
+          TAG="${{ steps.get_tag.outputs.tag }}"
+          VERSION=${TAG#v}
+          sed -i "s|url = \"github:SagerNet/sing-box/v.*\";|url = \"github:SagerNet/sing-box/$TAG\";|g" flake.nix
+          sed -i "s|version = \".*\";|version = \"$VERSION\";|g" flake.nix
           
-          # 第一次运行，强制获取错误信息
-          build_output=$(nix build .#default 2>&1)
+          # 2. 更新 lockfile
+          nix flake update --accept-flake-config
+          
+          # 3. 自动修复 vendorHash (沿用你之前的逻辑)
+          set +e
+          build_output=$(nix build .#default --accept-flake-config 2>&1)
           set -e
-
-          # 从错误输出中提取 Nix 期望的 'got:' 后的正确哈希值
           new_hash=$(echo "$build_output" | grep "got:" | cut -d':' -f2 | xargs)
-
           if [ -n "$new_hash" ] && [ "$new_hash" != "null" ]; then
-            echo "New vendorHash detected: $new_hash"
-            # 使用 sed 搜索并替换 flake.nix 中的旧哈希
             sed -i "s|vendorHash = \"sha256-.*\";|vendorHash = \"$new_hash\";|g" flake.nix
-          else
-            echo "vendorHash is still valid or was already correct."
           fi
-
-      - name: Final Build & Push to Cachix
-        run: |
-          # 实际构建，结果会自动上传到 Cachix
-          # --print-build-logs 方便你在 Action 界面看编译进度
+          
+          # 4. 最终构建并推送到 Cachix
           nix build .#default --accept-flake-config --print-build-logs
 
-      - name: Commit and Push changes
+      - name: Commit and Push
+        if: steps.check.outputs.update_needed == 'true' || github.event_name == 'workflow_dispatch'
         run: |
-          # 配置 Git 机器人身份
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          
-          # 暂存所有更改
           git add flake.nix flake.lock
-          
-          # 检查是否有实际改动，避免 push 报错
-          if git diff --cached --exit-code; then
-            echo "No changes in flake.nix or flake.lock. Skipping push."
-          else
-            echo "Changes detected, pushing to repository..."
-            git commit -m "chore: auto update sing-box and vendorHash"
+          if [[ -n $(git status --porcelain) ]]; then
+            git commit -m "chore: update to sing-box ${{ steps.get_tag.outputs.tag }}"
             git push
           fi
