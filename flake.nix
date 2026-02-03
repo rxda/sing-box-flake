@@ -36,7 +36,7 @@
             src = inputs.sing-box-src;
 
             # 哈希会自动被 GitHub Action 里的脚本更新
-            vendorHash = "sha256-nif9mfr02l6m9flb9p22j1a60c8br774=";
+            vendorHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
 
             # 包含所有增强特性
             tags = [
