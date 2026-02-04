@@ -35,6 +35,14 @@
 
             src = inputs.sing-box-src;
 
+            # 多个实验特性用逗号隔开
+            GOEXPERIMENT = "greenteagc,jsonv2";
+
+            # 同时也需要在处理依赖阶段开启，否则 vendorHash 可能会在本地和 CI 环境不一致
+            overrideModAttrs = (_: {
+              GOEXPERIMENT = "greenteagc,jsonv2";
+            });
+
             # 哈希会自动被 GitHub Action 里的脚本更新
             vendorHash = "sha256-+2uCNH656h+Cq3DCBfWuFCp5G16T05h9k1TXqkixzno=";
 
