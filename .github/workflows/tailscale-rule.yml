@@ -1,0 +1,75 @@
+name: Release Tailscale DERP Rules
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # 每天 UTC 0点自动执行
+  workflow_dispatch: # 允许手动执行
+
+jobs:
+  build_and_release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # 必须赋予写入权限以创建 Release
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq curl
+
+      - name: Install Sing-box
+        run: |
+          SB_VERSION=$(curl -s https://api.github.com/repos/SagerNet/sing-box/releases/latest | jq -r .tag_name | sed 's/v//')
+          curl -Lo sing-box.tar.gz https://github.com/SagerNet/sing-box/releases/download/v${SB_VERSION}/sing-box-${SB_VERSION}-linux-amd64.tar.gz
+          tar -xzf sing-box.tar.gz
+          sudo mv sing-box-*/sing-box /usr/local/bin/
+
+      - name: Fetch and Parse DERP Map
+        run: |
+          # 抓取官方数据
+          curl -s https://login.tailscale.com/derpmap/default > derp_map.json
+          
+          # 提取 HostNames, IPv4, IPv6
+          HOSTNAMES=$(cat derp_map.json | jq -r '.Regions[].Nodes[] | .HostName' | grep -v 'null' | sort -u | jq -R . | jq -s .)
+          IPS=$(cat derp_map.json | jq -r '.Regions[].Nodes[] | (.IPv4, .IPv6) | select(. != null)' | sort -u | jq -R . | jq -s .)
+          
+          # 生成 sing-box 规则集 JSON
+          cat > tailscale-derp.json <<EOF
+          {
+            "version": 1,
+            "rules": [
+              {
+                "domain": $HOSTNAMES,
+                "ip_cidr": $IPS
+              },
+              {
+                "domain_suffix": [".tailscale.com", ".tailscale.net", ".ts.net"]
+              }
+            ]
+          }
+          EOF
+
+      - name: Compile SRS File
+        run: |
+          # 编译为二进制 SRS
+          sing-box rule-set compile tailscale-derp.json -o tailscale-derp.srs
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: latest
+          name: "Latest Tailscale DERP Rules"
+          body: |
+            自动更新的 Tailscale DERP 规则集。
+            更新时间: $(date -u +'%Y-%m-%d %H:%M:%S') UTC
+            
+            包含所有官方 DERP 节点的 HostName 和 IP 地址。
+          files: |
+            tailscale-derp.json
+            tailscale-derp.srs
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
