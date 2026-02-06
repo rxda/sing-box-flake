@@ -2,11 +2,11 @@
   "nodes": {
     "nixpkgs": {
       "locked": {
-        "lastModified": 1770115704,
-        "narHash": "sha256-KHFT9UWOF2yRPlAnSXQJh6uVcgNcWlFqqiAZ7OVlHNc=",
+        "lastModified": 1770197578,
+        "narHash": "sha256-AYqlWrX09+HvGs8zM6ebZ1pwUqjkfpnv8mewYwAo+iM=",
         "owner": "nixos",
         "repo": "nixpkgs",
-        "rev": "e6eae2ee2110f3d31110d5c222cd395303343b08",
+        "rev": "00c21e4c93d963c50d4c0c89bfa84ed6e0694df2",
         "type": "github"
       },
       "original": {
@@ -25,16 +25,16 @@
     "sing-box-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1769920197,
-        "narHash": "sha256-BvisqHPGZtRsehpz5OBKbnHUI+RO22PEvd/BM604LG4=",
+        "lastModified": 1770294505,
+        "narHash": "sha256-v/b0NO29JkSf2TfwIwg7XMCoQjXm9U/i5EA9o/NLaZ8=",
         "owner": "SagerNet",
         "repo": "sing-box",
-        "rev": "c1dc6cb0fb428edf152c8e6cc600924b0fd6fd91",
+        "rev": "a2d313c59b40fd2936b32c069d98ba3b9f8ac09e",
         "type": "github"
       },
       "original": {
         "owner": "SagerNet",
-        "ref": "v1.13.0-rc.1",
+        "ref": "v1.13.0-rc.2",
         "repo": "sing-box",
         "type": "github"
       }
