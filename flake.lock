@@ -25,16 +25,16 @@
     "sing-box-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1771653331,
-        "narHash": "sha256-NzwVKgeNJik9CAMWvxI5c+dm6WLkkV0YCiQ6liy+pjE=",
+        "lastModified": 1771841867,
+        "narHash": "sha256-yNZGUiNZh7fyW/BFgXcZg4ttnldRIDkB2KJ/MK5NH5E=",
         "owner": "SagerNet",
         "repo": "sing-box",
-        "rev": "9bcd715d3106665e741659f81880f18d7e38821a",
+        "rev": "94ed42caf1677293d249f9fb8c82c5284fddd0a8",
         "type": "github"
       },
       "original": {
         "owner": "SagerNet",
-        "ref": "v1.13.0-rc.5",
+        "ref": "v1.13.0-rc.6",
         "repo": "sing-box",
         "type": "github"
       }
