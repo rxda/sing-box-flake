@@ -25,7 +25,7 @@ jobs:
           # select(...)             -> 只保留 tag_name 包含 beta 或 rc 的项
           # | .tag_name             -> 提取标签名
           # 第一个 jq 是为了生成一个列表，第二个 jq 取第一个元素（时间上最新）
-          TAG=$(echo "$RESPONSE" | jq -r '[.[] | select(.tag_name | test("beta|rc"; "i"))] | .[0].tag_name')
+          TAG=$(echo "$RESPONSE" | jq -r '[.[] | select(.tag_name | test("alpha|beta|rc"; "i"))] | .[0].tag_name')
 
           # 3. 检查是否成功获取
           if [ "$TAG" == "null" ] || [ -z "$TAG" ]; then
