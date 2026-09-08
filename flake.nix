@@ -5,7 +5,7 @@
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     sing-box-src = {
       # ！！！格式警告：修改此 URL 会导致 GitHub Action 匹配失败 ！！！
-      url = "github:SagerNet/sing-box/v1.14.0-rc.5";
+      url = "github:SagerNet/sing-box/v1.15.0-alpha.2";
       flake = false;
     };
   };
@@ -31,7 +31,7 @@
           default = pkgs.buildGoModule rec {
             pname = "sing-box";
             # ！！！格式警告：修改此变量名会导致 GitHub Action 匹配失败 ！！！
-            version = "1.14.0-rc.5";
+            version = "1.15.0-alpha.2";
 
             src = inputs.sing-box-src;
 
@@ -44,7 +44,7 @@
             });
 
             # 哈希会自动被 GitHub Action 里的脚本更新
-            vendorHash = "sha256-37zjqQSdib8vNmHifFx0zeZq6ipTig0u2CUY2z2kToU=";
+            vendorHash = "sha256-c6dOQ5jLq/3k3P8cA3r8aq4oVa1lXovURQ9Izno7cgM=";
 
             # 包含所有增强特性
             tags = [
