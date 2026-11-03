@@ -83,7 +83,7 @@ jobs:
           
           # 3. 自动修复 vendorHash (沿用你之前的逻辑)
           set +e
-          build_output=$(nix build .#default --accept-flake-config 2>&1)
+          build_output=$(nix build .#default --accept-flake-config --no-link 2>&1)
           set -e
           new_hash=$(echo "$build_output" | grep "got:" | cut -d':' -f2 | xargs)
           if [ -n "$new_hash" ] && [ "$new_hash" != "null" ]; then
@@ -91,7 +91,7 @@ jobs:
           fi
           
           # 4. 最终构建并推送到 Cachix
-          nix build .#default --accept-flake-config --print-build-logs
+          nix build .#default --accept-flake-config --no-link --print-build-logs
 
       - name: Commit and Push
         if: steps.check.outputs.update_needed == 'true' || github.event_name == 'workflow_dispatch'
@@ -99,7 +99,9 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add flake.nix flake.lock
-          if [[ -n $(git status --porcelain) ]]; then
+          if git diff --cached --quiet; then
+            echo "No tracked changes to commit."
+          else
             git commit -m "chore: update to sing-box ${{ steps.get_tag.outputs.tag }}"
             git push
           fi
