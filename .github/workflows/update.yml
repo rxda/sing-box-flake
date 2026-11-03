@@ -11,7 +11,7 @@ jobs:
       contents: write
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Get Latest Beta/RC Release Tag
         id: get_tag
@@ -56,7 +56,7 @@ jobs:
       - name: Install Nix
         # 只有在需要更新，或者是手动触发时才执行安装 Nix
         if: steps.check.outputs.update_needed == 'true' || github.event_name == 'workflow_dispatch'
-        uses: cachix/install-nix-action@v30
+        uses: cachix/install-nix-action@v31
         with:
           extra_nix_config: |
             experimental-features = nix-command flakes auto-allocate-uids configurable-impure-env
@@ -64,7 +64,7 @@ jobs:
 
       - name: Setup Cachix
         if: steps.check.outputs.update_needed == 'true' || github.event_name == 'workflow_dispatch'
-        uses: cachix/cachix-action@v15
+        uses: cachix/cachix-action@v17
         with:
           name: rxda-cache
           authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'

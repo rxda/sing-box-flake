@@ -12,7 +12,7 @@ jobs:
       contents: write # 必须赋予写入权限以创建 Release
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install Tools
         run: |
